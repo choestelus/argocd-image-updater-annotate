@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	kimage = "argocd-image-updater.argoproj.io/%s.kustomize.image-name"
-	kstrat = "argocd-image-updater.argoproj.io/%s.update-strategy"
+	kimage        = "argocd-image-updater.argoproj.io/%s.kustomize.image-name"
+	kstrat        = "argocd-image-updater.argoproj.io/%s.update-strategy"
+	argoImageList = "argocd-image-updater.argoproj.io/image-list"
 )
 
 func main() {
@@ -39,17 +40,27 @@ func main() {
 		panic(err)
 	}
 	services = extractServiceName(services...)
-	fmt.Println("services: ", services)
+
+	kustomizeImages, err := parseImageNodes(imgs)
+	if err != nil {
+		panic(err)
+	}
+
+	outResource, err := yaml.Parse("apiVersion: argoproj.io/v1alpha1\nkind: Application")
 
 	for _, svc := range services {
-		if err := resource.PipeE(yaml.SetAnnotation(annotateImage(svc), fmt.Sprintf("%s-image", svc))); err != nil {
+		if err := outResource.PipeE(yaml.SetAnnotation(annotateImage(svc), fmt.Sprintf("%s-image", svc))); err != nil {
 			panic(err)
 		}
 
-		if err := resource.PipeE(yaml.SetAnnotation(annotateStrategy(svc), "latest")); err != nil {
+		if err := outResource.PipeE(yaml.SetAnnotation(annotateStrategy(svc), "latest")); err != nil {
 			panic(err)
 		}
 	}
+
+	outResource.PipeE(yaml.SetAnnotation(argoImageList, GenerateImageList(kustomizeImages)))
+
+	fmt.Println(outResource.MustString())
 }
 
 func annotateStrategy(service string) string {
@@ -58,6 +69,17 @@ func annotateStrategy(service string) string {
 
 func annotateImage(service string) string {
 	return fmt.Sprintf(kimage, service)
+}
+
+func GenerateImageList(imgList [][]string) string {
+	var imageList strings.Builder
+	for _, node := range imgList {
+		imageList.WriteString(node[0])
+		imageList.WriteString("=")
+		imageList.WriteString(node[1])
+		imageList.WriteString(",")
+	}
+	return imageList.String()
 }
 
 func parseImageNodes(r *yaml.RNode) ([][]string, error) {
