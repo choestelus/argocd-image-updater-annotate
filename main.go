@@ -74,12 +74,12 @@ func annotateImage(service string) string {
 func GenerateImageList(imgList [][]string) string {
 	var imageList strings.Builder
 	for _, node := range imgList {
-		imageList.WriteString(node[0])
+		imageList.WriteString(",")
+		imageList.WriteString(strings.TrimSuffix(node[0], "-image"))
 		imageList.WriteString("=")
 		imageList.WriteString(node[1])
-		imageList.WriteString(",")
 	}
-	return imageList.String()
+	return imageList.String()[1:]
 }
 
 func parseImageNodes(r *yaml.RNode) ([][]string, error) {
