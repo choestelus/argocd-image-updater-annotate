@@ -38,8 +38,9 @@ metadata:
 ```
 
 ## Caveats
-malformed kustomization, particulary `images` section without complete `name` `newName` and `newTag` presence might cause undefined behavior
+- malformed kustomization, particulary `images` section without complete `name` `newName` and `newTag` presence might cause undefined behavior
 use this only if you have linting/vetting process in-place to ensure kustomization format
+- no warning when generated service referencing annotations exceed 63 characters limit as described in RFC-1035/RFC-1123
 
 ## License
 This project is licensed under Apache License 2.0
